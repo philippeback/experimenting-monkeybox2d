@@ -1,6 +1,41 @@
 <?xml version="1.0"?>
-<JiProj xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" EntryPoint=".\pendulum.monkey" Name="project">
+<JiProj xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" EntryPoint=".\ads_crate.monkey" Name="project">
   <Files>
+    <Document Filename=".\pendulum.buildv85e\newfile.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
+    <Document Filename=".\pendulum.buildv85e\newfile2.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
+    <Document Filename=".\pendulum.buildv85e\newfile3.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
+    <Document Filename=".\ads_crate.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
+    <Document Filename=".\box2d_diddy_screen.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
     <Document Filename=".\box2dfour.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
       <DocGUID />
       <CursorPos>
@@ -15,7 +50,14 @@
         <Y>0</Y>
       </CursorPos>
     </Document>
-    <Document Filename=".\box2dpinball.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+    <Document Filename=".\box2dmaindemo.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
+    <Document Filename=".\box2dseven_jointconstraints.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
       <DocGUID />
       <CursorPos>
         <X>0</X>
@@ -29,14 +71,42 @@
         <Y>0</Y>
       </CursorPos>
     </Document>
-    <Document Filename=".\demo.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+    <Document Filename=".\box2dtuto1.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
       <DocGUID />
       <CursorPos>
         <X>0</X>
         <Y>0</Y>
       </CursorPos>
     </Document>
-    <Document Filename=".\jointconstraints.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+    <Document Filename=".\box2dtwo_pinball.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
+    <Document Filename=".\bruzard_1_crate.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
+    <Document Filename=".\hardcoal_demo0.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
+    <Document Filename=".\hardcoal_demo1.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
+      <DocGUID />
+      <CursorPos>
+        <X>0</X>
+        <Y>0</Y>
+      </CursorPos>
+    </Document>
+    <Document Filename=".\hardcoal_demo2.monkey" Open="false" SplitView="false" SplitIsVertical="false" SplitSize="150">
       <DocGUID />
       <CursorPos>
         <X>0</X>
@@ -58,7 +128,7 @@
       </CursorPos>
     </Document>
   </Files>
-  <CompilerConfig Configuration="release" BuildMode="run" Target="Desktop_Game_(Glfw3)" />
+  <CompilerConfig Configuration="debug" BuildMode="run" Target="Desktop_Game_(Glfw3)" />
   <Version Major="16" Minor="1" Revision="6" Build="65" ProductName="Untitled product" />
   <PreBuildCommands />
 </JiProj>

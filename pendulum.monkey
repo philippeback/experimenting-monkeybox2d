@@ -9,8 +9,6 @@ Import mojo
 Import box2d.collision
 Import box2d.dynamics.joints
 
-Const WORLDSCALE:Float = 1
-
 Const FRAMERATE:Int = 30
 
 Const TIMESTEP:Float = 1.0 / FRAMERATE
@@ -21,12 +19,15 @@ Const VELOCITY_ITERATIONS:Int = 6
 Const POSITION_ITERATIONS:Int = 3
 
 'Divide pixel coordinates by this to have the World coordinates.
-Const PHYS_SCALE:Float = 1.0
-Const SCREEN_WIDTH:= 640
-Const SCREEN_HEIGHT:= 480
+'If 1 pixel is one meter, this is making huge objects and all looks like slow.
+'A good rule is 1 meter = 128 pixels, so, divide pixel measures by 128
 
-Const SCREEN_WIDTH2:= 640 / 2
-Const SCREEN_HEIGHT2:= 480 / 2
+Const PHYS_SCALE:Float = 128.0
+Const SCREEN_WIDTH:= 1024
+Const SCREEN_HEIGHT:= 768
+
+Const SCREEN_WIDTH2:= 1024 / 2
+Const SCREEN_HEIGHT2:= 768 / 2
 
 Function toBoxCoords:b2Vec2(userUnitsVec:b2Vec2)
 
@@ -48,26 +49,25 @@ Class PendulumWorld
 	
 	
 	Method New()
-		Init New b2Vec2(0,10)
+		Init()
 	End
 
-	Method Init:Void(gravity:b2Vec2)
+	Method Init:Void()
 	
-
-	
-		Local worldAABB:b2AABB = New b2AABB()
-		worldAABB.lowerBound.Set(-1000.0, -1000.0)
-		worldAABB.upperBound.Set(1000.0, 1000.0)
-		
 		' Allow bodies to sleep
 		Local doSleep:Bool = True
+		
+		Local gravity:b2Vec2 = New b2Vec2(0, 10)
 		
 		' Construct a world object
 		world = New b2World(gravity, doSleep)
 		world.SetWarmStarting(True)
 		
 		Local dbgDraw:= New DebugDraw()
+		
+		'This affects the way things are drawn scale wise.
 		dbgDraw.SetDrawScale(PHYS_SCALE)
+		
 		dbgDraw.SetFillAlpha(0.90)
 		dbgDraw.SetLineThickness(1.0)
 		dbgDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit)'| b2DebugDraw.e_pairBit)
@@ -165,8 +165,8 @@ Class PendulumApp Extends App
 	End
 	
 	Method AddStuff:Void()
-		pendulumBall = world.CreateBody(0, 100, b2Body.b2_Body)
-		pendulumShaft = world.CreateBody(0, 0, b2Body.b2_Body)
+		pendulumBall = world.CreateBody(0, 0, b2Body.b2_Body)
+		pendulumShaft = world.CreateBody(0, -100, b2Body.b2_Body)
 		
 		world.AddRadialFixture(pendulumBall, 20, DYNAMICBIT, STATICBIT | DYNAMICBIT)
 		world.AddSquareFixture(pendulumShaft, 2, 100, DYNAMICBIT, STATICBIT | DYNAMICBIT)
@@ -174,7 +174,12 @@ Class PendulumApp Extends App
 		jointDef = New b2DistanceJointDef()
 		
 		' http://www.iforce2d.net/b2dtut/joints-revolute
-		jointDef.Initialize(pendulumBall, pendulumShaft, toBoxCoords(New b2Vec2(0, 100)), toBoxCoords(New b2Vec2(0, 100)))
+		jointDef.Initialize(
+			pendulumBall,
+			pendulumShaft,
+			toBoxCoords(New b2Vec2(0, 0)),
+			toBoxCoords(New b2Vec2(0, 0)))
+			
 		jointDef.collideConnected = False
 		jointDef.frequencyHz = 1.0
 		jointDef.dampingRatio = 1.0
@@ -187,6 +192,9 @@ Class PendulumApp Extends App
 	Method OnUpdate%()
 		If KeyHit(KEY_F1) ResetWorld
 		If KeyHit(KEY_F2) AddStuff
+		If KeyHit(KEY_ESCAPE)
+			EndApp()
+		End
 		world.Update
 		Return 0
 	End

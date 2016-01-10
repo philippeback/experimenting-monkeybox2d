@@ -2,7 +2,8 @@
 
 ' F1 - reset
 ' F2 - add ball
-
+' ESC - quit
+'http://www.box2d.org/manual.html
 Strict
 
 Import mojo
@@ -14,7 +15,7 @@ Const FRAMERATE:Int = 30
 Const TIMESTEP:Float = 1.0 / FRAMERATE
 
 'Iterations for solvers (velocity solver and position solver)
-'L
+
 Const VELOCITY_ITERATIONS:Int = 6
 Const POSITION_ITERATIONS:Int = 3
 
@@ -22,7 +23,7 @@ Const POSITION_ITERATIONS:Int = 3
 'If 1 pixel is one meter, this is making huge objects and all looks like slow.
 'A good rule is 1 meter = 128 pixels, so, divide pixel measures by 128
 
-Const PHYS_SCALE:Float = 128.0
+Const PHYS_SCALE_PIXELS_PER_METER:Float = 128.0
 Const SCREEN_WIDTH:= 1024
 Const SCREEN_HEIGHT:= 768
 
@@ -31,13 +32,13 @@ Const SCREEN_HEIGHT2:= 768 / 2
 
 Function toBoxCoords:b2Vec2(userUnitsVec:b2Vec2)
 
-	Return New b2Vec2( (SCREEN_WIDTH2 + userUnitsVec.x) / PHYS_SCALE, (SCREEN_HEIGHT2 + userUnitsVec.y) / PHYS_SCALE)
+	Return New b2Vec2( (SCREEN_WIDTH2 + userUnitsVec.x) / PHYS_SCALE_PIXELS_PER_METER, (SCREEN_HEIGHT2 + userUnitsVec.y) / PHYS_SCALE_PIXELS_PER_METER)
 	
 End
 
 Function toRelativeBoxCoords:b2Vec2(userUnitsVec:b2Vec2)
 
-	Return New b2Vec2(userUnitsVec.x / PHYS_SCALE, userUnitsVec.y / PHYS_SCALE)
+	Return New b2Vec2(userUnitsVec.x / PHYS_SCALE_PIXELS_PER_METER, userUnitsVec.y / PHYS_SCALE_PIXELS_PER_METER)
 	
 End
 
@@ -66,7 +67,7 @@ Class PendulumWorld
 		Local dbgDraw:= New DebugDraw()
 		
 		'This affects the way things are drawn scale wise.
-		dbgDraw.SetDrawScale(PHYS_SCALE)
+		dbgDraw.SetDrawScale(PHYS_SCALE_PIXELS_PER_METER)
 		
 		dbgDraw.SetFillAlpha(0.90)
 		dbgDraw.SetLineThickness(1.0)
@@ -89,16 +90,17 @@ Class PendulumWorld
 	Global Impulse:=New b2Vec2
 		
 	'Pass coordinates in screen pixels relative to screen center
+	'Always remember that (x,y) is the center of the object
 	Method CreateBody:b2Body(x:Float, y:Float, bodytype:Int)
 		BodyDef.type = bodytype
 		BodyDef.fixedRotation=False
-		BodyDef.position.Set( (SCREEN_WIDTH2 + x) / PHYS_SCALE, (SCREEN_HEIGHT2 + y) / PHYS_SCALE)
+		BodyDef.position.Set( (SCREEN_WIDTH2 + x) / PHYS_SCALE_PIXELS_PER_METER, (SCREEN_HEIGHT2 + y) / PHYS_SCALE_PIXELS_PER_METER)
 		Return world.CreateBody(BodyDef)
 	End
 	
 	
 	Method AddRadialFixture:b2Fixture(body:b2Body, r:Float, bits:Int, mask:Int)
-		FixtureDef.shape = New b2CircleShape(r / PHYS_SCALE)
+		FixtureDef.shape = New b2CircleShape(r / PHYS_SCALE_PIXELS_PER_METER)
 		FixtureDef.density=10
 		FixtureDef.filter.categoryBits=bits
 		FixtureDef.filter.maskBits=mask
@@ -110,7 +112,7 @@ Class PendulumWorld
 
 	Method AddSquareFixture:b2Fixture(body:b2Body, w:Float, h:Float, bits:Int, mask:Int)
 		Local shape:=New b2PolygonShape
-		shape.SetAsBox w / PHYS_SCALE, h / PHYS_SCALE
+		shape.SetAsBox w / PHYS_SCALE_PIXELS_PER_METER, h / PHYS_SCALE_PIXELS_PER_METER
 		FixtureDef.shape=shape
 		FixtureDef.density=10
 		FixtureDef.filter.categoryBits=bits
@@ -147,8 +149,12 @@ Class PendulumApp Extends App
 	Field ground:b2Body
 	Field pendulumBall:b2Body
 	Field pendulumShaft:b2Body
+	Field ceilingAttachment:b2Body
 	Field jointDef:b2DistanceJointDef
+	Field revoluteJointDef:b2RevoluteJointDef
+	Field revoluteJointCeilingDef:b2RevoluteJointDef
 	Field joint:b2Joint
+	Field jointCeiling:b2Joint
 
 	Method OnCreate%()
 		ResetWorld
@@ -161,16 +167,19 @@ Class PendulumApp Extends App
 		world = New PendulumWorld
 		
 		ground = world.CreateBody(0, 220, b2Body.b2_staticBody)
-		world.AddSquareFixture(ground, 100, 10, STATICBIT, DYNAMICBIT)
+		world.AddSquareFixture(ground, 200, 10, STATICBIT, DYNAMICBIT)
 	End
 	
 	Method AddStuff:Void()
 		pendulumBall = world.CreateBody(0, 0, b2Body.b2_Body)
 		pendulumShaft = world.CreateBody(0, -100, b2Body.b2_Body)
-		
+		ceilingAttachment = world.CreateBody(0, -100 * 2, b2Body.b2_staticBody)
+
+		world.AddRadialFixture(ceilingAttachment, 5, STATICBIT, STATICBIT | DYNAMICBIT)
 		world.AddRadialFixture(pendulumBall, 20, DYNAMICBIT, STATICBIT | DYNAMICBIT)
 		world.AddSquareFixture(pendulumShaft, 2, 100, DYNAMICBIT, STATICBIT | DYNAMICBIT)
 		
+		#rem
 		jointDef = New b2DistanceJointDef()
 		
 		' http://www.iforce2d.net/b2dtut/joints-revolute
@@ -181,12 +190,33 @@ Class PendulumApp Extends App
 			toBoxCoords(New b2Vec2(0, 0)))
 			
 		jointDef.collideConnected = False
-		jointDef.frequencyHz = 1.0
-		jointDef.dampingRatio = 1.0
+		jointDef.frequencyHz = 0.0
+		jointDef.dampingRatio = 0.0
+		#end
 		
-		joint = world.world.CreateJoint(jointDef)
+		Local anchorPoint:= toBoxCoords(New b2Vec2(0, 0))
+		' try to use pendulumBall.body.getWorldCenter()
+		revoluteJointDef = New b2RevoluteJointDef()
+		revoluteJointDef.Initialize(
+			pendulumBall,
+			pendulumShaft,
+			anchorPoint)
+			
+		' joint = world.world.CreateJoint(jointDef)
+		joint = world.world.CreateJoint(revoluteJointDef)
 		
-		world.ApplyImpulse(pendulumBall, 1, 0)
+		Local anchorPointCeiling:= toBoxCoords(New b2Vec2(0, -200))
+		
+		'This will need some organization of things at one point
+		revoluteJointCeilingDef = New b2RevoluteJointDef()
+		revoluteJointCeilingDef.Initialize(
+			ceilingAttachment,
+			pendulumShaft,
+			anchorPointCeiling)
+
+		jointCeiling = world.world.CreateJoint(revoluteJointCeilingDef)
+		
+		world.ApplyImpulse(pendulumBall, 0, 10)
 	End
 	
 	Method OnUpdate%()

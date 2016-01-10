@@ -48,8 +48,6 @@ Class PendulumWorld
 
 	Field world:b2World
 	
-	
-	
 	Method New()
 		Init()
 	End
@@ -93,12 +91,13 @@ Class PendulumWorld
 	'angularDamping between 0 and 0.01
 	'0 = do damping
 	'inf = full damping
-	Method CreateBody:b2Body(x:Float, y:Float, bodytype:Int, linearDamping:Float = 0, angularDamping:Float = 0)
+	Method CreateBody:b2Body(x:Float, y:Float, bodytype:Int, linearDamping:Float = 0, angularDamping:Float = 0, fixedRotation:Bool = False)
 		BodyDef.type = bodytype
 		BodyDef.fixedRotation=False
 		BodyDef.position.Set( (SCREEN_WIDTH2 + x) / PHYS_SCALE_PIXELS_PER_METER, (SCREEN_HEIGHT2 + y) / PHYS_SCALE_PIXELS_PER_METER)
 		BodyDef.linearDamping = linearDamping
 		BodyDef.angularDamping = angularDamping
+		BodyDef.fixedRotation = fixedRotation
 		Return world.CreateBody(BodyDef)
 	End
 	
@@ -145,8 +144,6 @@ Const DYNAMICBIT%=2
 
 Class PendulumApp Extends App
 
-
-	
 	Field world:PendulumWorld
 	Field renderCount:Int
 	Field ground:b2Body
@@ -176,7 +173,7 @@ Class PendulumApp Extends App
 	End
 	
 	Method AddStuff:Void()
-		pendulumBall = world.CreateBody(0, 0, b2Body.b2_Body, 0, 2)
+		pendulumBall = world.CreateBody(0, 0, b2Body.b2_Body, 0, 2, True)
 		pendulumShaft = world.CreateBody(0, -100, b2Body.b2_Body)
 		ceilingAttachment = world.CreateBody(0, -100 * 2, b2Body.b2_staticBody)
 
@@ -237,16 +234,21 @@ Class PendulumApp Extends App
 		If KeyHit(KEY_SPACE)
 			debugRender = Not debugRender
 		EndIf
+		Local clicked:Int = MouseHit(0) - MouseHit(1)
+		If clicked
+			Local worldPoint:b2Vec2 = New b2Vec2(
+				MouseX() / PHYS_SCALE_PIXELS_PER_METER,
+				MouseY() / PHYS_SCALE_PIXELS_PER_METER)
+		
+			pendulumBall.ApplyForce(New b2Vec2(clicked * 60, 0), worldPoint)
+		EndIf
 		world.Update
 		Return 0
 	End
 
 	Method OnRender:Int()
 		renderCount+=1
-		Cls 10, 70, 200
-		If debugRender
-			world.Draw()
-		EndIf
+		Cls 10, 70, 120
 		Local ceilingAttachmentPosition:b2Vec2 = ceilingAttachment.GetPosition()
 		ceilingAttachmentPosition.Multiply(PHYS_SCALE_PIXELS_PER_METER)
 		Local pendulumBallPosition:b2Vec2 = pendulumBall.GetPosition()
@@ -257,6 +259,11 @@ Class PendulumApp Extends App
 			pendulumBallPosition.x, pendulumBallPosition.y)
 		SetColor(255, 0, 0)
 		DrawCircle(pendulumBallPosition.x, pendulumBallPosition.y, 20)
+		
+		If debugRender
+			world.Draw()
+		EndIf
+		
 		Return 0
 	End
 End

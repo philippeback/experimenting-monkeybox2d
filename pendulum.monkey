@@ -4,6 +4,7 @@
 ' F2 - add ball
 ' ESC - quit
 'http://www.box2d.org/manual.html
+'http://www.iforce2d.net/b2dtut/forces
 Strict
 
 Import mojo
@@ -82,19 +83,22 @@ Class PendulumWorld
 		
 	Method Draw:Void()
 		world.DrawDebugData()
-		
 	End
 
 	Global FixtureDef:=New b2FixtureDef()
 	Global BodyDef:=New b2BodyDef()
-	Global Impulse:=New b2Vec2
 		
 	'Pass coordinates in screen pixels relative to screen center
 	'Always remember that (x,y) is the center of the object
-	Method CreateBody:b2Body(x:Float, y:Float, bodytype:Int)
+	'angularDamping between 0 and 0.01
+	'0 = do damping
+	'inf = full damping
+	Method CreateBody:b2Body(x:Float, y:Float, bodytype:Int, linearDamping:Float = 0, angularDamping:Float = 0)
 		BodyDef.type = bodytype
 		BodyDef.fixedRotation=False
 		BodyDef.position.Set( (SCREEN_WIDTH2 + x) / PHYS_SCALE_PIXELS_PER_METER, (SCREEN_HEIGHT2 + y) / PHYS_SCALE_PIXELS_PER_METER)
+		BodyDef.linearDamping = linearDamping
+		BodyDef.angularDamping = angularDamping
 		Return world.CreateBody(BodyDef)
 	End
 	
@@ -103,8 +107,9 @@ Class PendulumWorld
 		FixtureDef.shape = New b2CircleShape(r / PHYS_SCALE_PIXELS_PER_METER)
 		FixtureDef.density=10
 		FixtureDef.filter.categoryBits=bits
-		FixtureDef.filter.maskBits=mask
-		Local fixture:=body.CreateFixture(FixtureDef)
+		FixtureDef.filter.maskBits = mask
+		
+		Local fixture:= body.CreateFixture(FixtureDef)
 		fixture.SetRestitution(0.1)
 		fixture.SetFriction(0.9)
 		Return fixture
@@ -123,10 +128,8 @@ Class PendulumWorld
 		Return fixture
 	End
 	
-	Method ApplyImpulse:Void(body:b2Body, x:Float, y:Float)
-		Impulse.x=x
-		Impulse.y=y
-		body.ApplyForce Impulse,body.GetPosition()
+	Method ApplyForceToBody:Void(force:b2Vec2, body:b2Body)
+		body.ApplyForce(force, body.GetPosition())
 	End
 
 End
@@ -155,11 +158,13 @@ Class PendulumApp Extends App
 	Field revoluteJointCeilingDef:b2RevoluteJointDef
 	Field joint:b2Joint
 	Field jointCeiling:b2Joint
+	Field debugRender:Bool = False
 
-	Method OnCreate%()
+	Method OnCreate:Int()
 		ResetWorld
 		AddStuff
 		SetUpdateRate FRAMERATE
+		debugRender = True
 		Return 0
 	End
 	
@@ -171,7 +176,7 @@ Class PendulumApp Extends App
 	End
 	
 	Method AddStuff:Void()
-		pendulumBall = world.CreateBody(0, 0, b2Body.b2_Body)
+		pendulumBall = world.CreateBody(0, 0, b2Body.b2_Body, 0, 2)
 		pendulumShaft = world.CreateBody(0, -100, b2Body.b2_Body)
 		ceilingAttachment = world.CreateBody(0, -100 * 2, b2Body.b2_staticBody)
 
@@ -209,6 +214,9 @@ Class PendulumApp Extends App
 		
 		'This will need some organization of things at one point
 		revoluteJointCeilingDef = New b2RevoluteJointDef()
+		revoluteJointCeilingDef.maxMotorTorque = 0.0;
+		revoluteJointCeilingDef.motorSpeed = 0.0;
+		revoluteJointCeilingDef.enableMotor = False;
 		revoluteJointCeilingDef.Initialize(
 			ceilingAttachment,
 			pendulumShaft,
@@ -216,28 +224,44 @@ Class PendulumApp Extends App
 
 		jointCeiling = world.world.CreateJoint(revoluteJointCeilingDef)
 		
-		world.ApplyImpulse(pendulumBall, 0, 10)
+		world.ApplyForceToBody(New b2Vec2(60, 0), pendulumBall)
+		
 	End
 	
-	Method OnUpdate%()
+	Method OnUpdate:Int()
 		If KeyHit(KEY_F1) ResetWorld
 		If KeyHit(KEY_F2) AddStuff
 		If KeyHit(KEY_ESCAPE)
 			EndApp()
 		End
+		If KeyHit(KEY_SPACE)
+			debugRender = Not debugRender
+		EndIf
 		world.Update
 		Return 0
 	End
 
-	Method OnRender%()
+	Method OnRender:Int()
 		renderCount+=1
-		Cls 10,30,160
-		world.Draw
+		Cls 10, 70, 200
+		If debugRender
+			world.Draw()
+		EndIf
+		Local ceilingAttachmentPosition:b2Vec2 = ceilingAttachment.GetPosition()
+		ceilingAttachmentPosition.Multiply(PHYS_SCALE_PIXELS_PER_METER)
+		Local pendulumBallPosition:b2Vec2 = pendulumBall.GetPosition()
+		pendulumBallPosition.Multiply(PHYS_SCALE_PIXELS_PER_METER)
+		SetColor(0, 255, 0)
+		DrawLine(
+			ceilingAttachmentPosition.x, ceilingAttachmentPosition.y,
+			pendulumBallPosition.x, pendulumBallPosition.y)
+		SetColor(255, 0, 0)
+		DrawCircle(pendulumBallPosition.x, pendulumBallPosition.y, 20)
 		Return 0
 	End
 End
 
-Function Main%()
+Function Main:Int()
 	New PendulumApp
 	Return 0
 End

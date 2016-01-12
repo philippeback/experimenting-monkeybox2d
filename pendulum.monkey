@@ -48,6 +48,7 @@ Class PendulumWorld
 
 	Field world:b2World
 	
+	
 	Method New()
 		Init()
 	End
@@ -58,6 +59,7 @@ Class PendulumWorld
 		Local doSleep:Bool = True
 		
 		Local gravity:b2Vec2 = New b2Vec2(0, 10)
+		
 		
 		' Construct a world object
 		world = New b2World(gravity, doSleep)
@@ -149,6 +151,9 @@ Class PendulumApp Extends App
 	Field ground:b2Body
 	Field pendulumBall:b2Body
 	Field pendulumShaft:b2Body
+	Field pendulumBall2:b2Body
+	Field pendulumShaft2:b2Body
+	
 	Field ceilingAttachment:b2Body
 	Field jointDef:b2DistanceJointDef
 	Field revoluteJointDef:b2RevoluteJointDef
@@ -156,30 +161,45 @@ Class PendulumApp Extends App
 	Field joint:b2Joint
 	Field jointCeiling:b2Joint
 	Field debugRender:Bool = False
+	
+	Field imgBoulder:Image
+	
 
 	Method OnCreate:Int()
 		ResetWorld
 		AddStuff
 		SetUpdateRate FRAMERATE
 		debugRender = True
+		imgBoulder = LoadImage("boulder.png")
+		imgBoulder.SetHandle(imgBoulder.Width() / 2, imgBoulder.Height() / 2)
+		renderCount = 0
+		
 		Return 0
 	End
 	
 	Method ResetWorld:Void()
 		world = New PendulumWorld
 		
-		ground = world.CreateBody(0, 220, b2Body.b2_staticBody)
+		ground = world.CreateBody(0, 300, b2Body.b2_staticBody)
 		world.AddSquareFixture(ground, 200, 10, STATICBIT, DYNAMICBIT)
 	End
 	
 	Method AddStuff:Void()
-		pendulumBall = world.CreateBody(0, 0, b2Body.b2_Body, 0, 2, True)
 		pendulumShaft = world.CreateBody(0, -100, b2Body.b2_Body)
+		pendulumBall = world.CreateBody(0, 0, b2Body.b2_Body, 0, 2, True)
+		
+		pendulumShaft2 = world.CreateBody(0, 100, b2Body.b2_Body)
+		pendulumBall2 = world.CreateBody(0, 200, b2Body.b2_Body, 0, 2, True)
+		
 		ceilingAttachment = world.CreateBody(0, -100 * 2, b2Body.b2_staticBody)
 
 		world.AddRadialFixture(ceilingAttachment, 5, STATICBIT, STATICBIT | DYNAMICBIT)
 		world.AddRadialFixture(pendulumBall, 20, DYNAMICBIT, STATICBIT | DYNAMICBIT)
 		world.AddSquareFixture(pendulumShaft, 2, 100, DYNAMICBIT, STATICBIT | DYNAMICBIT)
+		
+		world.AddRadialFixture(pendulumBall2, 20, DYNAMICBIT, STATICBIT | DYNAMICBIT)
+		world.AddSquareFixture(pendulumShaft2, 2, 100, DYNAMICBIT, STATICBIT | DYNAMICBIT)
+		
 		
 		#rem
 		jointDef = New b2DistanceJointDef()
@@ -204,9 +224,23 @@ Class PendulumApp Extends App
 			pendulumShaft,
 			anchorPoint)
 			
-		' joint = world.world.CreateJoint(jointDef)
 		joint = world.world.CreateJoint(revoluteJointDef)
 		
+		revoluteJointDef.Initialize(
+			pendulumBall,
+			pendulumShaft2,
+			anchorPoint)
+			
+		joint = world.world.CreateJoint(revoluteJointDef)
+		
+		revoluteJointDef.Initialize(
+			pendulumBall2,
+			pendulumShaft2,
+			toBoxCoords(New b2Vec2(0, 200)))
+			
+		joint = world.world.CreateJoint(revoluteJointDef)
+		
+
 		Local anchorPointCeiling:= toBoxCoords(New b2Vec2(0, -200))
 		
 		'This will need some organization of things at one point
@@ -221,7 +255,9 @@ Class PendulumApp Extends App
 
 		jointCeiling = world.world.CreateJoint(revoluteJointCeilingDef)
 		
-		world.ApplyForceToBody(New b2Vec2(60, 0), pendulumBall)
+		
+		
+		world.ApplyForceToBody(New b2Vec2(160, 0), pendulumBall)
 		
 	End
 	
@@ -247,18 +283,36 @@ Class PendulumApp Extends App
 	End
 
 	Method OnRender:Int()
-		renderCount+=1
+		renderCount += 3
 		Cls 10, 70, 120
 		Local ceilingAttachmentPosition:b2Vec2 = ceilingAttachment.GetPosition()
 		ceilingAttachmentPosition.Multiply(PHYS_SCALE_PIXELS_PER_METER)
 		Local pendulumBallPosition:b2Vec2 = pendulumBall.GetPosition()
 		pendulumBallPosition.Multiply(PHYS_SCALE_PIXELS_PER_METER)
+		Local pendulumBall2Position:b2Vec2 = pendulumBall2.GetPosition()
+		pendulumBall2Position.Multiply(PHYS_SCALE_PIXELS_PER_METER)
 		SetColor(0, 255, 0)
 		DrawLine(
 			ceilingAttachmentPosition.x, ceilingAttachmentPosition.y,
 			pendulumBallPosition.x, pendulumBallPosition.y)
+		DrawLine(
+				pendulumBallPosition.x, pendulumBallPosition.y,
+			pendulumBall2Position.x, pendulumBall2Position.y)
+		
 		SetColor(255, 0, 0)
+		
 		DrawCircle(pendulumBallPosition.x, pendulumBallPosition.y, 20)
+		
+		DrawImageRect(imgBoulder, pendulumBallPosition.x, pendulumBallPosition.y, 0, 0, imgBoulder.Width(), imgBoulder.Height(), renderCount Mod 360, 1, 1, 0)
+		DrawImageRect(imgBoulder, pendulumBall2Position.x, pendulumBall2Position.y, 0, 0, imgBoulder.Width(), imgBoulder.Height(), renderCount Mod 360, 1, 1, 0)
+		
+		#rem
+		PushMatrix
+		Translate(pendulumBallPosition.x, pendulumBallPosition.y)
+		Rotate(renderCount Mod 360)
+		DrawImage(imgBoulder, 0, 0)
+		PopMatrix				
+		#end
 		
 		If debugRender
 			world.Draw()

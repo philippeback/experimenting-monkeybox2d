@@ -88,8 +88,8 @@ Class Box2dscreen extends Screen
 		world.TimeStep(m_timeStep, m_velocityIterations, m_positionIterations)
 		world.ClearForces()
 		If KeyHit(KEY_ESCAPE)
-			game.screenFade.Start(50, True)
-			game.nextScreen = game.exitScreen
+			diddyGame.screenFade.Start(50, True)
+			diddyGame.nextScreen = diddyGame.exitScreen
 		End
 	End Method
 	

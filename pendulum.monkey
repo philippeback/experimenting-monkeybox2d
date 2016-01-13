@@ -270,6 +270,7 @@ Class PendulumApp Extends App
 		If KeyHit(KEY_SPACE)
 			debugRender = Not debugRender
 		EndIf
+		
 		Local clicked:Int = MouseHit(0) - MouseHit(1)
 		If clicked
 			Local worldPoint:b2Vec2 = New b2Vec2(
@@ -278,6 +279,7 @@ Class PendulumApp Extends App
 		
 			pendulumBall.ApplyForce(New b2Vec2(clicked * 60, 0), worldPoint)
 		EndIf
+		
 		world.Update
 		Return 0
 	End

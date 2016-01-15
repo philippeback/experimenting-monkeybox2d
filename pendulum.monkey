@@ -255,8 +255,6 @@ Class PendulumApp Extends App
 
 		jointCeiling = world.world.CreateJoint(revoluteJointCeilingDef)
 		
-		
-		
 		world.ApplyForceToBody(New b2Vec2(160, 0), pendulumBall)
 		
 	End
@@ -287,12 +285,16 @@ Class PendulumApp Extends App
 	Method OnRender:Int()
 		renderCount += 3
 		Cls 10, 70, 120
+		
 		Local ceilingAttachmentPosition:b2Vec2 = ceilingAttachment.GetPosition()
-		ceilingAttachmentPosition.Multiply(PHYS_SCALE_PIXELS_PER_METER)
+		
 		Local pendulumBallPosition:b2Vec2 = pendulumBall.GetPosition()
-		pendulumBallPosition.Multiply(PHYS_SCALE_PIXELS_PER_METER)
 		Local pendulumBall2Position:b2Vec2 = pendulumBall2.GetPosition()
-		pendulumBall2Position.Multiply(PHYS_SCALE_PIXELS_PER_METER)
+
+		For Local each:=Eachin [ceilingAttachmentPosition, pendulumBallPosition, pendulumBall2Position]
+      each.Multiply(PHYS_SCALE_PIXELS_PER_METER)
+		Next
+		
 		SetColor(0, 255, 0)
 		DrawLine(
 			ceilingAttachmentPosition.x, ceilingAttachmentPosition.y,

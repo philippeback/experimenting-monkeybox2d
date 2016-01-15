@@ -8,11 +8,13 @@ Strict
 Import mojo
 Import box2d.collision
 
-Const WORLDSCALE#=1.0/8
-Const TIMESTEP#=1.0/20			'frantic 2x clock
-Const FRAMERATE%=30
-Const SPEEDLOOPS%=20
-Const POSLOOPS%=20
+Const PHYSCALE:Float = 16 '1 meter = 20 pixels
+Const WORLDSCALE:Float = 1.0 / PHYSCALE
+
+Const FRAMERATE:Float = 60
+Const TIMESTEP:Float = 1.0 / FRAMERATE
+Const VELOCITY_ITERATIONS:Int = 3
+Const POSITION_ITERATIONS:Int = 6
 
 ' point list is [x,y,r[,...]]
 
@@ -28,6 +30,9 @@ Global ArmPoints#[]=[
 	80,-40,5,
 	100,0,10]
 
+	
+Global wb:Float = 80
+Global wh:Float = 40
 
 ' two semicirlces separated by d offset  Oxo
 
@@ -62,14 +67,14 @@ Class Body
 	Method New(	world:b2World,x#,y#,bodytype%)
 		BodyDef.type = bodytype
 		BodyDef.fixedRotation=False
-		BodyDef.position.Set(x*WORLDSCALE,y*WORLDSCALE)
-		body=world.CreateBody(BodyDef)
-		parent=world
+		BodyDef.position.Set(x / PHYSCALE, y / PHYSCALE)
+		body = world.CreateBody(BodyDef)
+		parent = world
 	End
 
 	Method AddRadialFixture:b2Fixture(x#,y#,r#,bits%,mask%)
-		Local shape:=New b2CircleShape(r*WORLDSCALE)
-		If x Or y shape.SetLocalPosition New b2Vec2(x*WORLDSCALE,y*WORLDSCALE)
+		Local shape:=New b2CircleShape(r / PHYSCALE)
+		If x Or y shape.SetLocalPosition New b2Vec2(x / PHYSCALE,y / PHYSCALE)
 		Local fixture:=AddFixture(shape,bits,mask)
 		fixture.SetRestitution(.6)
 		fixture.SetFriction(.8)
@@ -78,7 +83,7 @@ Class Body
 	
 	Method AddSquareFixture:b2Fixture(w#,h#,bits%,mask%)
 		Local shape:=New b2PolygonShape
-		shape.SetAsBox w*WORLDSCALE,h*WORLDSCALE
+		shape.SetAsBox w / PHYSCALE,h / PHYSCALE
 		Return AddFixture(shape,bits,mask)
 	End
 	
@@ -92,12 +97,12 @@ Class Body
 		Next
 
 		For Local i%=0 Until n-1
-			Local x0#=points[i*3+0]*WORLDSCALE
-			Local y0#=points[i*3+1]*WORLDSCALE
-			Local r0#=points[i*3+2]*WORLDSCALE
-			Local x1#=points[i*3+3]*WORLDSCALE
-			Local y1#=points[i*3+4]*WORLDSCALE
-			Local r1#=points[i*3+5]*WORLDSCALE
+			Local x0#=points[i*3+0] / PHYSCALE
+			Local y0#=points[i*3+1] / PHYSCALE
+			Local r0#=points[i*3+2] / PHYSCALE
+			Local x1#=points[i*3+3] / PHYSCALE
+			Local y1#=points[i*3+4] / PHYSCALE
+			Local r1#=points[i*3+5] / PHYSCALE
 			Local dx#=x1-x0
 			Local dy#=y1-y0
 			Local dd#=dx*dx+dy*dy
@@ -169,7 +174,7 @@ Class Body
 		body.ApplyTorque t
 	End
 
-	Method Rotate:Void(degrees#)
+	Method Rotate:Void(degrees:Float)
 		body.SetAngle body.GetAngle()+degrees*PI/180
 	End
 
@@ -180,7 +185,7 @@ Class Sim
 	Field gravity:b2Vec2
 	Field world:b2World
 	
-	Method New(gravityx#,gravityy#)
+	Method New(gravityx:Float, gravityy:Float)
 		gravity=New b2Vec2(gravityx,gravityy)
 		Init gravity
 	End
@@ -189,18 +194,18 @@ Class Sim
 		world = New b2World(gravity,True)	'gravity,dosleep
 		world.SetWarmStarting(True)
 		Local dbgDraw:=New DebugDraw()
-		dbgDraw.SetDrawScale(1.0/WORLDSCALE)
+		dbgDraw.SetDrawScale(PHYSCALE)
 		dbgDraw.SetFillAlpha(1.0)
 		dbgDraw.SetLineThickness(1.0)
 		dbgDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit)'| b2DebugDraw.e_pairBit)
 		world.SetDebugDraw(dbgDraw)
 	End
 			
-	Method CreateBody:Body(x#,y#,bodytype%)
+	Method CreateBody:Body(x:Float,y:Float,bodytype:Int)
 		Return New Body(world,x,y,bodytype)
 	End
 	
-	Method CreateRevolute:b2RevoluteJoint(a:Body,b:Body,rad0#,rad1#)
+	Method CreateRevolute:b2RevoluteJoint(a:Body,b:Body,lowerAngleInRadians:Float,upperAngleInRadians:Float)
 		Local r:=New b2RevoluteJointDef
 		Local p:=b.body.GetPosition()
 		r.Initialize(a.body,b.body,p)
@@ -208,19 +213,19 @@ Class Sim
 		r.motorSpeed = 0
 		If rad0 Or rad1 r.enableLimit = True
 		r.enableMotor = True
-		r.lowerAngle=rad0
-		r.upperAngle=rad1
+		r.lowerAngle=lowerAngleInRadians
+		r.upperAngle=upperAngleInRadians
 		Local joint:=world.CreateJoint(r)
 		Return b2RevoluteJoint(joint)
 	End
 	
-	Method CreatePrism:b2PrismaticJoint(a:Body,px#,py#,b:Body,ax#,ay#,force#,speed#)
+	Method CreatePrism:b2PrismaticJoint(a:Body,px:Float,py:Float,b:Body,ax:Float,ay:Float,force:Float,speed:Float)
 
 		Local pdef:=New b2PrismaticJointDef()
 
 		Local axis:=New b2Vec2(ax,ay)
 
-		Local p:=New b2Vec2(px*WORLDSCALE,py*WORLDSCALE)
+		Local p:=New b2Vec2(px / PHYSCALE,py / PHYSCALE)
 
 		'		Local p:=b.body.GetPosition()
 
@@ -245,7 +250,7 @@ Class Sim
 	
 
 	Method Update:Void()
-		world.TimeStep(TIMESTEP, SPEEDLOOPS, POSLOOPS)
+		world.TimeStep(TIMESTEP, VELOCITY_ITERATIONS, POSITION_ITERATIONS)
 		world.ClearForces()
 	End
 		
@@ -260,12 +265,12 @@ Class DebugDraw Extends b2DebugDraw
 	End
 End
 
-Const STATICBIT%=1
-Const MACHINEBIT%=2
-Const ROCKBIT%=4
+Const STATICBIT:Int = 1
+Const MACHINEBIT:Int = 2
+Const ROCKBIT:Int = 4
 
-Const DYNAMICBITS% = MACHINEBIT+ROCKBIT
-Const INANIMATEBITS% = STATICBIT+ROCKBIT
+Const DYNAMICBITS:Int = MACHINEBIT + ROCKBIT
+Const INANIMATEBITS:Int = STATICBIT + ROCKBIT
 
 Class Part
 	Field body:Body
@@ -276,12 +281,13 @@ Class Part
 	End
 End
 	
-Class Box2DFour Extends App
+Class Box2DFourApp Extends App
 
 	Field world:Sim
+	
 	Field ground:Body
 
-	Field chasis:Body
+	Field chassis:Body
 	Field bucket:Part
 
 	Field frontwheel:Part
@@ -292,65 +298,64 @@ Class Box2DFour Extends App
 	Field backshock:b2PrismaticJoint
 
 	Field arm:Part
-	Field renderCount%
+	Field renderCount:Int
 
 	Method ResetWorld:Void()
+	
 		world=New Sim(0,10)
 		
-		Local x#=300
-		Local y#=100
+		Local x:Float = 300
+		Local y:Float = 100
 
-		chasis=AddChasis(x,y,120,40)
+		chassis = AddChassis(x, y, 120, 40)
 
-		Local wb#=80
-		Local wh#=40
-		
-		frontaxle=AddPivot(chasis,x-wb,y+wh)
-		backaxle=AddPivot(chasis,x+wb,y+wh)
+		frontaxle=AddPivot(chassis,x-wb,y+wh)
+		backaxle=AddPivot(chassis,x+wb,y+wh)
 
 		frontwheel=AddWheel(frontaxle.body,x-wb,y+wh,wh)
 		backwheel=AddWheel(backaxle.body,x+wb,y+wh,wh)
 
-		frontshock=world.CreatePrism(chasis,x-wb,y-wh,  frontaxle.body,  .1,-1, .1,0)
-		backshock=world.CreatePrism(chasis,x+wb,y-wh,  backaxle.body,  -.1,-1, .1,0)
+		frontshock=world.CreatePrism(chassis,x-wb,y-wh,  frontaxle.body,  .1,-1, .1,0)
+		backshock=world.CreatePrism(chassis,x+wb,y-wh,  backaxle.body,  -.1,-1, .1,0)
 
-		arm=AddArm(chasis,x+50,y-50)
+		arm=AddArm(chassis,x+50,y-50)
 		bucket=AddBucket(arm.body,x+160,y-50)
 			
 		ground=AddBlock(0,450,600,10)
+		
 	End
 
-	Method OnCreate%()
+	Method OnCreate:Int()
 		ResetWorld
 		AddBall
 		SetUpdateRate 30
 		Return 0
 	End
 		
-	Method AddBlock:Body(x#,y#,w#,h#)
+	Method AddBlock:Body(x:Float, y:Float, w:Float, h:Float)
 		Local block:Body
 		block = world.CreateBody(x,y,b2Body.b2_staticBody)
 		block.AddSquareFixture(w,h,STATICBIT,DYNAMICBITS)
 		Return block
 	End
 	
-	Method AddChasis:Body(x#,y#,w#,h#)
+	Method AddChassis:Body(x:Float, y:Float, w:Float, h:Float)
 		Local block:Body
 		block = world.CreateBody(x,y,b2Body.b2_Body)
 		block.AddSquareFixture(w,h,MACHINEBIT,INANIMATEBITS)
 		Return block
 	End
 
-	Method AddPivot:Part(pin:Body,x#,y#)
+	Method AddPivot:Part(pin:Body, x:Float, y:Float)
 		Local wheel:Body
 		wheel = world.CreateBody(x,y,b2Body.b2_Body)
 		wheel.density=20
-		Local r#=8
+		Local r:Float = 8
 		wheel.AddRadialFixture(0,0,r,MACHINEBIT,INANIMATEBITS)
 		Return New Part(wheel,Null)
 	End
 
-	Method AddWheel:Part(pin:Body,x#,y#,r#)
+	Method AddWheel:Part(pin:Body, x:Float, y:Float, r:Float)
 		Local wheel:Body
 		wheel = world.CreateBody(x,y,b2Body.b2_Body)
 		wheel.density=2
@@ -359,7 +364,7 @@ Class Box2DFour Extends App
 		Return New Part(wheel,joint)
 	End
 
-	Method AddBucket:Part(pin:Body,x#,y#)
+	Method AddBucket:Part(pin:Body,x:Float,y:Float)
 		Local body:Body
 		body = world.CreateBody(x,y,b2Body.b2_Body)
 		body.density=2
@@ -368,12 +373,12 @@ Class Box2DFour Extends App
 		Return New Part(body,joint)
 	End
 
-	Method AddArm:Part(pin:Body,x#,y#)
+	Method AddArm:Part(pin:Body,x:Float,y:Float)
 		Local body:Body
 		body = world.CreateBody(x,y,b2Body.b2_Body)
 		body.density=2
 		body.AddPathFixture ArmPoints,MACHINEBIT,INANIMATEBITS
-		Local joint:=world.CreateRevolute(pin,body,-PI/4, PI/4)
+		Local joint:= world.CreateRevolute(pin, body, - (1.5 * PI) / 4, PI / 4)
 		Return New Part(body,joint)
 	End
 		
@@ -385,12 +390,12 @@ Class Box2DFour Extends App
 		Return ball
 	End
 	
-	Method OnUpdate%()
+	Method OnUpdate:Int()
 		If KeyHit(KEY_F1) ResetWorld
 		If KeyHit(KEY_F2) AddBall
 
-		Local bucketSpeed#=0
-		Local armSpeed#=0
+		Local bucketSpeed:Float=0
+		Local armSpeed:Float=0
 		If KeyDown(KEY_LEFT)
 			bucketSpeed=-20
 		Endif
@@ -410,9 +415,9 @@ Class Box2DFour Extends App
 		
 		Local wheelSpeed#=0
 		If KeyDown(KEY_X)
-			wheelSpeed=10
+			wheelSpeed = 10
 		Endif
-		If KeyDown(KEY_Z)
+		If KeyDown(KEY_W)
 			wheelSpeed=-10
 		Endif
 		backwheel.joint.SetMotorSpeed wheelSpeed
@@ -420,17 +425,24 @@ Class Box2DFour Extends App
 
 		world.Update
 		Return 0
+		
 	End
 
-	Method OnRender%()
+	Method OnRender:Int()
+
 		renderCount+=1
 		Cls 10,30,160
 		world.Draw
+		Local wheelPosition:b2Vec2 = backwheel.body.body.GetPosition()
+		wheelPosition.Multiply(PHYSCALE)
+		SetColor(255, 0, 0)
+		DrawCircle(wheelPosition.x, wheelPosition.y, wh)
+		
 		Return 0
 	End
 End
 
-Function Main%()
-	New Box2DFour
+Function Main:Int()
+	New Box2DFourApp
 	Return 0
 End
